@@ -35,5 +35,6 @@ Secure360 is a centralized, open-source platform designed to enhance organizatio
 
 1. **Clone the repository**:
    ```bash
+
    git clone https://github.com/maleksakir/Secure360.git
    cd Secure360
