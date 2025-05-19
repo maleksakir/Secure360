@@ -1,0 +1,10 @@
+from fastapi import FastAPI
+from routers import scan
+from database import init_db
+
+app = FastAPI()
+
+init_db()  # Auto-run DB schema creation on startup
+
+app.include_router(scan.router)
+

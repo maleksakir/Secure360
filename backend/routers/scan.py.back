@@ -1,0 +1,29 @@
+from fastapi import APIRouter
+from database import SessionLocal
+from models import ScanTask, ScanResult
+import subprocess
+
+router = APIRouter(prefix="/scan", tags=["Scan"])
+
+@router.post("/{scan_type}")
+def run_scan(scan_type: str):
+    db = SessionLocal()
+    task = ScanTask(scan_type=scan_type, status="running")
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+
+    # Replace with actual scanner call
+    result = subprocess.run(["echo", f"Simulated scan: {scan_type}"], capture_output=True)
+    scan_output = result.stdout.decode()
+
+    db_result = ScanResult(task_id=task.id, result=scan_output)
+    db.add(db_result)
+    task.status = "completed"
+    db.commit()
+    return {"task_id": task.id, "output": scan_output}
+
+@router.get("/results")
+def get_results():
+    db = SessionLocal()
+    return db.query(ScanResult).all()

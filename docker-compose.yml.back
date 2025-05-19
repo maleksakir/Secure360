@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: secure360-db
+    restart: always
+    environment:
+      POSTGRES_USER: secureuser
+      POSTGRES_PASSWORD: securepass
+      POSTGRES_DB: secure360
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  redis:
+    image: redis:7
+    container_name: secure360-redis
+    restart: always
+    networks:
+      - backend
+
+  backend:
+    build: ./backend
+    container_name: secure360-backend
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DB_HOST: postgres
+      DB_USER: secureuser
+      DB_PASS: securepass
+      DB_NAME: secure360
+    networks:
+      - backend
+    volumes:
+      - ./reports:/app/reports
+
+  worker:
+    build: ./backend
+    container_name: secure360-worker
+    command: celery -A worker.app worker --loglevel=info
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - backend
+    volumes:
+      - ./reports:/app/reports
+
+  frontend:
+    build: ./frontend
+    container_name: secure360-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - backend
+
+  sonarqube:
+    image: sonarqube:latest
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    networks:
+      - backend
+
+  gitleaks:
+    image: zricethezav/gitleaks:latest
+    container_name: gitleaks
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+  semgrep:
+    image: returntocorp/semgrep
+    container_name: semgrep
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+  zap:
+    image: ghcr.io/zaproxy/zaproxy
+    container_name: zap
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+  trivy:
+    image: aquasec/trivy
+    container_name: trivy
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+  grype:
+    image: anchore/grype
+    container_name: grype
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+  syft:
+    image: anchore/syft
+    container_name: syft
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+  prowler:
+    image: toniblyx/prowler
+    container_name: prowler
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+  scoutsuite:
+    build: ./tools/scoutsuite
+    container_name: scoutsuite
+    entrypoint: ["tail", "-f", "/dev/null"]
+    networks:
+      - backend
+
+  openvas:
+    image: immauss/openvas
+    container_name: openvas
+    ports:
+      - "9392:9392"
+    networks:
+      - backend
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --cleanup --interval 3600
+    restart: unless-stopped
+    networks:
+      - backend
+
+volumes:
+  pgdata:
+
+networks:
+  backend:
+
